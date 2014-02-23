@@ -39,7 +39,7 @@ Clients will send their positions by sending the word 'POS' followed by their ta
 * 'OK' if the position is accepted but there is no additional information to send.
 * 'POS' followed by one or more lat-long pairs (hounds receive one for the hare, hares receive all hounds)
 * 'ERR' if there is a problem with the input.
-* 'WIN' followed by the winner ('HARE' or 'HOUND-#') and their location.
+* 'WIN' followed by the winner ('HARE' or 'HOUND-#') and their location, in the case of a win (see below).
 
 ### Examples
 Direction | Text
@@ -57,5 +57,11 @@ Direction | Text
 Client->Server | POS HARE 44.56714 -123.27902
 Server->Client | WIN HOUND-1 44.56710 -123.27905
 
+## Client Exit
+Clients can exit from the game by sending 'EXIT' followed by their tag.  The server will delete the data pertaining to that client.  The server must respond with one of the following:
+* 'OK' if the tag exists.
+* 'ERR' if the tag does not exist.
+
 # Game End
 The game ends when either the hare is caught by a hound or the hare escapes capture for the duration of the game.  At this time, the 'WIN' message will be sent by the server in response to any client updates.
+
