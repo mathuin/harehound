@@ -8,6 +8,51 @@ ilab.cs.byu.edu/python/socket/echoserver.html
 import socket
 import re
 import sys
+import math
+
+
+# from http://www.johndcook.com/python_longitude_latitude.html
+erad = 6373000
+def distance_on_unit_sphere(lat1, long1, lat2, long2):
+
+    # Convert latitude and longitude to 
+    # spherical coordinates in radians.
+    degrees_to_radians = math.pi/180.0
+        
+    # phi = 90 - latitude
+    phi1 = (90.0 - lat1)*degrees_to_radians
+    phi2 = (90.0 - lat2)*degrees_to_radians
+        
+    # theta = longitude
+    theta1 = long1*degrees_to_radians
+    theta2 = long2*degrees_to_radians
+        
+    # Compute spherical distance from spherical coordinates.
+        
+    # For two locations in spherical coordinates 
+    # (1, theta, phi) and (1, theta, phi)
+    # cosine( arc length ) = 
+    #    sin phi sin phi' cos(theta-theta') + cos phi cos phi'
+    # distance = rho * arc length
+    
+    cos = (math.sin(phi1)*math.sin(phi2)*math.cos(theta1 - theta2) + 
+           math.cos(phi1)*math.cos(phi2))
+    arc = math.acos( cos )
+
+    # Remember to multiply arc by the radius of the earth 
+    # in your favorite set of units to get length.
+    return arc
+
+def hound_distance(hound):
+    """Distance between this particular hound and the hare."""
+    try:
+        (hare_latitude, hare_longitude) = client_pos['HARE']
+        (hound_latitude, hound_longitude) = client_pos[hound]
+        hound_distance = distance_on_unit_sphere(hound_latitude, hound_longitude, hare_latitude, hare_longitude) * erad
+        print " - - distance between hare and hound is %d meters" % hound_distance
+    except ValueError:
+        hound_distance = erad
+    return hound_distance
 
 # Client position is a dict.
 # key: client name (i.e., 'HARE', 'HOUND 1')
@@ -15,6 +60,10 @@ import sys
 client_pos = {}
 max_hounds = 2
 hound_list = ['HOUND-%d' % (x+1) for x in xrange(max_hounds)]
+# Winning distance in meters
+win_distance = 15
+# If winner is set, all valid responses are replaced with a win notification.
+winner = ''
 host = ''
 if sys.argv == 2:
     port = sys.argv[1]
@@ -84,6 +133,10 @@ while 1:
                         if hound in client_pos and client_pos[hound] != ():
                             (hound_latitude, hound_longitude) = client_pos[hound]
                             output += '%s %s ' % (hound_latitude, hound_longitude)
+                            # Check for win condition!
+                            if (hound_distance(hound) < win_distance):
+                                winner = hound
+                                break
                     if output == 'POS ':
                         output = 'OK'
                 elif key in hound_list:
@@ -92,7 +145,15 @@ while 1:
                     except ValueError:
                         output = 'OK'
                     finally:
-                        output = 'POS %.5f %.5f' % (hare_latitude, hare_longitude)
+                        if (hound_distance(key) < win_distance):
+                            winner = key
+                        else:
+                            output = 'POS %.5f %.5f' % (hare_latitude, hare_longitude)
+
+        # Check for victory.
+        if winner in client_pos:
+            (winner_latitude, winner_longitude) = client_pos[winner]
+            output = 'WIN %s %.5f %.5f' % (winner, winner_latitude, winner_longitude)
         # Send output
         print "output = '%s'" % output
         client.send(output.rstrip())
